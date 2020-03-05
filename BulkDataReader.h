@@ -18,6 +18,7 @@ public:
 
 	int ReadNastranFile(std::string filename);
 	int ReadFreeFormat(char* cline, std::ifstream inFile);
+	int ReadFixedFormat(char* cline, std::ifstream inFile);
 
 	int lnscan(char* image, int* col, char* alpha,
 		int* ix, double* x, char* del);

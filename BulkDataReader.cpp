@@ -18,7 +18,7 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 	std::ifstream inFile;
 	std::string line;
 	size_t len = 0;
-	size_t nread;
+	//size_t nread;
 	int max = 120;
 	int error = 0;
     char* pch = NULL;
@@ -27,6 +27,8 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 	const char* ccard = "CBAR";
 	const char* BDcard = "BEGIN BULK";
 
+    std::cout << " opening file: " << filename << "\n";
+
 	inFile.open(filename, std::ifstream::in);
 	char cline[256];
 
@@ -34,17 +36,18 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 
 	while (!inFile.eof()) {
 		inFile.getline(cline, max);
-        std::cout << cline << "\n";
+       
         if (strncmp(cline, BDcard, 4) == 0) {
-            std::cout << "------------------- Bulk data found -----------------------------\n";
+            std::cout << "------------------- Bulk data found -----------------------------";
             inFile.getline(cline, max);
-            std::cout << cline << "\n";
+            //std::cout << cline << "\n";
             pch = strchr(cline, ',');
             if (pch == NULL)
-                std::cout << "                   Fixed format\n";
+                std::cout << " Fixed format\n";
             else
-                std::cout << "                   Free Format\n";
+                std::cout << " Free Format\n";
         }
+        std::cout << cline << "\n";
 
 	}
 		
@@ -53,11 +56,24 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 
 	return error;
 }
+/******************************************************************************/
 int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream inFile)
 {
+    int error = 0;
+
+    return error;
 
 }
-/***********************************************************************/
+/******************************************************************************/
+int BulkDataReader::ReadFixedFormat(char* cline, std::ifstream inFile)
+{
+    int error = 0;
+
+    return error;
+
+}
+/******************************************************************************/
+//.......0.........2.........3.........4.........5.........6.........7.........8
 int BulkDataReader::lnscan(char* image, int* col, char* alpha,
     int* ix, double* x, char* del)
     /*
@@ -212,5 +228,3 @@ int BulkDataReader::lnscan(char* image, int* col, char* alpha,
     }
     return(2);
 }
-
-

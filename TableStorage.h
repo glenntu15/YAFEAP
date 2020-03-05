@@ -4,6 +4,7 @@
 struct Element
 {
 	enum etype {
+		conrod,			// axial and torsonial stress only 
 		rod,
 		tube,
 		I,
@@ -20,7 +21,7 @@ struct Element
 	int intgrid1;
 	int intgrid2;
 	
-	int pid;
+	int pid;			// must be positive for input, generated properties are negative		
 	int intpid;
 	int matid;
 	int intmatid;
@@ -52,6 +53,7 @@ struct PBAR
 	double Area;
 	double I1, I2, I3;  // moments of intertia
 	double J;			// torsonial constant
+	double C;			// torsonial stress constant (for conrod)
 	double Nsm;			// nonstructural mass
 
 };
@@ -69,6 +71,8 @@ private:
 	std::vector<Grid> Gridtable;
 	std::vector<Element> ElementTable;
 	std::vector<MAT1> MaterialTable;
+	std::vector<MAT1> PBarTable;
+	std::vector<MAT1> PRodTable;
 };
 
 //

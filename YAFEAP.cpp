@@ -14,8 +14,12 @@ int main(int argc, char*argv[])
         std::cout << filename << "\n";
     } 
 
-    std::cout << "Hello World! argc = " << argc << "\n";
-    
+    std::cout << "! argc = " << argc;
+    if (argc > 1) {
+        std::cout << " Given: " << argv[1];
+    }
+    std::cout << "\n";
+
     BulkDataReader* bdr = new BulkDataReader();
     //
     // default is Nastran file -- other
