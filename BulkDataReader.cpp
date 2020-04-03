@@ -5,7 +5,7 @@
 #include <iostream>
 //#include <stdlib.h>
 #define LINE_LEN 256
-BulkDataReader::BulkDataReader()
+BulkDataReader::BulkDataReader() :TS(TableStorage::getInstance()), EM(ErrorManager::getInstance())
 {
 
 }
@@ -22,6 +22,8 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 	int max = 120;
 	int error = 0;
     char* pch = NULL;
+
+    bool isfree = false;
 
 	const char* gcard = "GRID";
 	const char* ccard = "CBAR";
@@ -42,14 +44,24 @@ int BulkDataReader::ReadNastranFile(std::string filename)
             inFile.getline(cline, max);
             //std::cout << cline << "\n";
             pch = strchr(cline, ',');
-            if (pch == NULL)
+            if (pch == NULL) {
                 std::cout << " Fixed format\n";
-            else
+                break;
+            }
+                
+            else {
                 std::cout << " Free Format\n";
+                isfree = true;
+                break;
+            }
+                
         }
+
         std::cout << cline << "\n";
 
 	}
+    if (isfree)
+        ReadFreeFormat(cline, inFile);
 		
 	std::cout << " eof reached \n";
 
@@ -57,10 +69,165 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 	return error;
 }
 /******************************************************************************/
-int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream inFile)
+int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile)
 {
     int error = 0;
+    int ierr = 0;
+    bool isknown = false;
+    int max = 120;
+    bool done = false;
+    int icol;
+    char alpha[16];
+    int ix, id, idp, iga, igb;
+    int mid;
+    double x;
+    char del;
+    int icond;
+    double x1, x2, x3, x4, addmass, J;
+ 
+    std::cout << " In read free format" << "\n";
+    
+    while (!done) {
+        std::cout << cline << "\n";
+        icol = 1;
+        if (*cline == '$') {
+            if (inFile.eof())
+                done = true;
+            else {
+                inFile.getline(cline, max);
+                isknown = false;
+            }
+            continue;
+        }
+           
+        icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+        //std::cout << " icol " << icol << " icond " << icond << " ix " << ix << " x " << x << " del " << del << "\n";
+        if (strcmp(alpha, "GRID") == 0) {
+            isknown = true;
+            ix = 0;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            id = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            if (icond > 1)
+                std::cout << " ignoring CP ix = " << ix << "\n";
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x1 = x;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x2 = x;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x3 = x;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            if (icond > 1)
+                std::cout << " ignoring Cd ix = " << ix << "\n";
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del); // ix is the spc value
 
+            ierr = TS.AddGridPoint(id, x1, x2, x3, ix);
+            if (ierr > 0)
+                EM.inp_DupError(cline);
+               // std::cout << "===>>> ERROR duplicate grid point number: " << id << " <<<===\n";
+
+        }
+        else if (strcmp(alpha, "CBAR") == 0) {
+            isknown = true;
+            int pa = 0; int pb = 0;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            id = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            idp = ix;                                           // prop id
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            iga = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            igb = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del); // Restriction on CBAR -- must use vector 
+            x1 = x;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x2 = x;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x3 = x;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            if (icond > 2)
+                pa = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            if (icond > 2)
+                pb = ix;
+
+            ierr = TS.AddCbarElement(id, idp, iga, igb, x1, x2, x3, pa, pb);
+            if (ierr > 0)
+                EM.inp_DupError(cline);
+        }
+
+        else if (strcmp(alpha, "CONROD") == 0) {
+            isknown = true;
+        }
+
+        //PBAR,pid,mid,A,i1,i2,j,nsm, [k1,k2 (k is area factor for shear) -- not implemented]
+        if (strcmp(alpha, "PBAR") == 0) {
+            isknown = true;
+            idp = 0;
+            x1 = x2 = x3 = J = addmass = 0.;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            idp = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            mid = ix;
+           
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x1 = x; // Area
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x2 = x; // I1 Area moment of inertia
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x3 = x; // I2
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            J = x; // Torsion
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            addmass = x; // nsm
+
+            ierr = TS.AddPbar(idp, mid, x1, x1, x3, J, addmass);
+            if (ierr > 0)
+                EM.inp_DupError(cline);
+
+        }
+        else if (strcmp(alpha, "PBARL") == 0) {
+            isknown = true;
+            int pa = 0; int pb = 0;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            id = ix;
+            std::cout << "***\n ------------>>> ERROR -- PBARL not supported yet <<<----------------------\n***\n";
+            //generate property -- calculate moments
+        }
+        //MAT1 MID,E,G,NU,RHO
+        else if (strcmp(alpha, "MAT1") == 0) {
+            isknown = true;
+            id = 0;
+            x1 = x2 = x3 = 0.0;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            id = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x1 = x; // E
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x2 = x; //G
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x3 = x; //NU
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x4 = x; //RHO
+            if (ierr > 0)
+                EM.inp_DupError(cline);
+
+            ierr = TS.AddMaterial(id, x1, x2, x3, x4);
+            if (ierr > 0)
+                EM.inp_DupError(cline);
+        }
+        if (!isknown)
+            std::cout << "===> Unrecognized input: " << cline << "\n";
+        if (ierr > 0)
+            error = 1;
+        if (inFile.eof())
+            done = true;
+        else {
+            inFile.getline(cline, max);
+            isknown = false;
+        }
+            
+    }
     return error;
 
 }
@@ -68,7 +235,7 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream inFile)
 int BulkDataReader::ReadFixedFormat(char* cline, std::ifstream inFile)
 {
     int error = 0;
-
+    std::cout << "***\n ------------>>> ERROR -- Fixed Format not supported yet <<<----------------------\n***\n";
     return error;
 
 }
@@ -135,9 +302,9 @@ int BulkDataReader::lnscan(char* image, int* col, char* alpha,
         //
         if ((*i == ')') || (*i == '/')
             //  || (*i == '}') || (*i == ';' || *i == '\n') ) { 
-            || (*i == '}') || (*i == ';')) {
+            || (*i == '}') || (*i == ';') || (*i == ',')) {             // added comma
             *del = *i;
-            *col = icol;
+            *col = ++icol;
             return(1);
         }
         //
@@ -200,7 +367,7 @@ int BulkDataReader::lnscan(char* image, int* col, char* alpha,
     *alpha = '\0';
     if (numeric > 0) {
         if (isfloat > 0) {
-            //sscanf(ststart, "%le", x);
+            
             if (dexp) {
 
                // sscanf(ststart + dexp, "%d", &exp);
@@ -219,6 +386,8 @@ int BulkDataReader::lnscan(char* image, int* col, char* alpha,
                 }
 
             }
+            else
+                sscanf(ststart, "%le", x);
             *ix = (int)*x;
             return(4);
         }

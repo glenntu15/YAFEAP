@@ -1,5 +1,8 @@
 #pragma once
 #include <string>
+#include "TableStorage.h"
+#include "ErrorManager.h"
+
 class BulkDataReader
 {
 public:
@@ -16,8 +19,12 @@ public:
 	BulkDataReader();
 	~BulkDataReader();
 
+	TableStorage &TS;
+	ErrorManager &EM;
+
+
 	int ReadNastranFile(std::string filename);
-	int ReadFreeFormat(char* cline, std::ifstream inFile);
+	int ReadFreeFormat(char* cline, std::ifstream &inFile);
 	int ReadFixedFormat(char* cline, std::ifstream inFile);
 
 	int lnscan(char* image, int* col, char* alpha,

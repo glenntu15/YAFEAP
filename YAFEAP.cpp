@@ -4,10 +4,11 @@
 #include <iostream>
 #include <string>
 #include "BulkDataReader.h"
+#include "TableStorage.h"
 
 int main(int argc, char*argv[])
 {
-    std::string filename("prob2a.dat");
+    std::string filename("prob_test1.dat");
 
     if (argc > 1) {
         std::string filename(argv[1]);
@@ -25,9 +26,16 @@ int main(int argc, char*argv[])
     // default is Nastran file -- other
     //
     bdr->ReadNastranFile(filename);
-
-
     delete bdr;
+
+    TableStorage& ts = TableStorage::getInstance();
+    
+    int len = ts.NumGrid();
+    int lene = ts.NumElement();
+    std::cout << " Number of grids read: " << len << " Number of elements: " << lene << "\n";
+    len = ts.NumProperties();
+    lene = ts.NumMaterials();
+    std::cout << " Number of properties read: " << len << " Number of materials: " << lene << "\n";
     
 }
 
