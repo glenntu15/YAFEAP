@@ -1,6 +1,0 @@
-﻿  BulkDataReader.cpp
-C:\Projects\YAFEAP\YAFEAP\BulkDataReader.cpp(21,9): warning C4101: 'nread': unreferenced local variable
-  TableStorage.cpp
-  YAFEAP.cpp
-  Generating Code...
-  YAFEAP.vcxproj -> C:\Projects\YAFEAP\Debug\YAFEAP.exe
