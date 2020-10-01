@@ -1,6 +1,7 @@
 #include "TableStorage.h"
+#include "ErrorManager.h"
 
-TableStorage::TableStorage()
+TableStorage::TableStorage() : EM(ErrorManager::getInstance())
 {
 
 }
@@ -11,7 +12,7 @@ TableStorage::~TableStorage()
 // 
 // Return 0 -- ok
 //        1 -- duplicate ID
-int TableStorage::AddGridPoint(int id, double x, double y, double z, int spc)
+int TableStorage::AddGridPoint(int id, double x, double y, double z, char* spc)
 {
 	int error = 0;
 	int len = GridTable.size();
@@ -24,8 +25,10 @@ int TableStorage::AddGridPoint(int id, double x, double y, double z, int spc)
 	g->x = x;
 	g->y = y;
 	g->z = z;
-	g->spc = spc;
+	
 	GridTable.push_back(*g);
+
+	AddConstraint(id, spc);
 
 	return error;
 
@@ -74,7 +77,7 @@ int TableStorage::AddPbar(int id, int mid, double A, double i1, double i2, doubl
 	p->I2 = i2;
 	p->J = j;
 	p->Nsm = nsm;
-
+	
 	PropertyTable.push_back(*p);
 
 	return error;
@@ -108,4 +111,89 @@ int TableStorage::AddMaterial(int id, double e, double g, double nu, double ro)
 	MaterialTable.push_back(*m);
 
 	return error;
+}
+int TableStorage::CleanUpData()
+{
+	int error = 0;
+	int id1, indx;
+	const char* gcard = "GRID";
+	const char* pcard = "Property";
+//
+//	First convert grid number in elements to internal grid numbers
+	int len = ElementTable.size();
+
+	for (int i = 0; i < len; i++) {
+		id1 = ElementTable[i].grida;
+		indx = FindGridIndex(id1);
+		if (indx < 0)
+			EM.ItemNotFound(gcard, id1);
+		ElementTable[i].intgrida = indx;
+		id1 = ElementTable[i].gridb;
+		indx = FindGridIndex(id1);
+		if (indx < 0)
+			EM.ItemNotFound(gcard, id1);
+		ElementTable[i].intgridb = indx;
+		
+		id1 = ElementTable[i].pid;
+		indx = -1;
+		// Now make sure it references 
+		int len = PropertyTable.size();
+		for (int i = 0; i < len; i++) {
+			if (PropertyTable[i].id == id1) {
+				indx = i;
+				break;
+			}
+		}
+		if (indx < 0) {
+			error = 1;
+			EM.ItemNotFound(pcard, id1);
+		}
+	}
+
+//  Check that properties and materials have been entered
+
+	return error;
+}
+void TableStorage::AddConstraint(int id, char* spc)
+{
+	int intid = FindGridIndex(id);
+	if (intid < 0)
+		EM.ItemNotFound("GRID", id);
+	int len = strlen(spc);
+	for (int i = 0; i < len; i++) {
+		char c = *spc + i;
+		if (c != ' ') {
+			int n = (int)c;
+			GridTable[intid].constraints[n - 1] = true;
+		}
+
+	}
+	
+}
+int inline TableStorage::FindGridIndex(int id)
+{
+	int len = GridTable.size();
+	for (int i = 0; i < len; i++) {
+		if (GridTable[i].id == id)
+			return i;
+	}
+	return -1; // not found
+}
+void TableStorage::FillElementTable()
+{
+	int gid1, gid2;
+	double temp;
+	Grid g1, g2;
+	int nelm = NumElement();
+	
+	for (int i = 0; i < nelm; i++) {
+		gid1 = FindGridIndex(ElementTable[i].grida);
+		gid2 = FindGridIndex(ElementTable[i].gridb);
+		ElementTable[i].intgrida = gid1;
+		ElementTable[i].intgridb = gid2;
+		g1 = GridTable[gid1];
+		g2 = GridTable[gid2];
+		temp = pow((g2.x - g1.x),2) + pow((g2.y - g1.y),2) + pow((g2.z - g1.z),2);
+		ElementTable[i].length = sqrt(temp);
+	}
 }

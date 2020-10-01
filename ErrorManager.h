@@ -16,8 +16,10 @@ public:
 	}
 
 	void inp_DupError(char* cline);
+	void ItemNotFound(const char* item, int id);
 	
 private: 
 	int errcount;
+	int warncount;
 };
 

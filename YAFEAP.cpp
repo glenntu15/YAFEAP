@@ -5,10 +5,11 @@
 #include <string>
 #include "BulkDataReader.h"
 #include "TableStorage.h"
+#include "OutfileWriter.h"
 
 int main(int argc, char*argv[])
 {
-    std::string filename("prob_test1.dat");
+    std::string filename("test1d.dat");
 
     if (argc > 1) {
         std::string filename(argv[1]);
@@ -21,14 +22,21 @@ int main(int argc, char*argv[])
     }
     std::cout << "\n";
 
+    OutfileWriter *writer = new OutfileWriter();
+    char* it = (char *)filename.c_str();
+    writer->WriteHeader(it);
+
     BulkDataReader* bdr = new BulkDataReader();
     //
     // default is Nastran file -- other
     //
-    bdr->ReadNastranFile(filename);
+    bdr->ReadNastranFile(filename, writer);
     delete bdr;
 
     TableStorage& ts = TableStorage::getInstance();
+    ts.FillElementTable();
+
+    writer->WriteInputSummary();
     
     int len = ts.NumGrid();
     int lene = ts.NumElement();
@@ -36,16 +44,12 @@ int main(int argc, char*argv[])
     len = ts.NumProperties();
     lene = ts.NumMaterials();
     std::cout << " Number of properties read: " << len << " Number of materials: " << lene << "\n";
+
+    int error = ts.CleanUpData();
+    if (error > 0) {
+        std::cout << "Error in data -- no analysis performed\n";
+        exit;
+    }
     
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

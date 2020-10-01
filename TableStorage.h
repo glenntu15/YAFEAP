@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+
+class ErrorManager;
+
 struct Element
 {
 	enum etype {
@@ -19,6 +22,7 @@ struct Element
 	double J;			// torsonial constant for conrod
 	double diam;		// diameter for conrod
 	double mass;		// total mass depends on length
+	double length;		// calculated
 	int grida;
 	int gridb;
 	int intgrida;
@@ -40,8 +44,18 @@ struct Grid
 	double z;
 	double addmass;
 	int id;
-	int spc;
+	bool constraints[6];
 	bool operator<(Grid a) { if (a.id < id) return true; else return false; }
+	Grid()
+	{
+		id = -1;
+		constraints[0] = false; // false = free
+		constraints[1] = false;
+		constraints[2] = false;
+		constraints[3] = false;
+		constraints[4] = false;
+		constraints[5] = false;
+	}
 };
 struct MAT1
 {
@@ -80,7 +94,7 @@ public:
 	}
 
 	int NumGrid(){return GridTable.size(); }
-	int AddGridPoint(int id, double x, double y, double z, int spc);
+	int AddGridPoint(int id, double x, double y, double z, char* spc);
 	Grid getGrid(int i) { return GridTable[i]; }
 
 	int NumElement() { return ElementTable.size(); }
@@ -98,9 +112,16 @@ public:
 	
 	PBAR getProperty(int i) { return PropertyTable[i]; }
 
+	void AddConstraint(int ig, char* alpha);
+	int CleanUpData();
+	void FillElementTable();
+
 private:
 
+	ErrorManager& EM;
+
 	int CheckForDupEID(int id);
+	int	inline FindGridIndex(int id);
 
 	std::vector<Grid> GridTable;
 	std::vector<Element> ElementTable;

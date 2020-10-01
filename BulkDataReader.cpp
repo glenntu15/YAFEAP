@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+
+#include "OutfileWriter.h"
+
 //#include <stdlib.h>
 #define LINE_LEN 256
 BulkDataReader::BulkDataReader() :TS(TableStorage::getInstance()), EM(ErrorManager::getInstance())
@@ -13,7 +16,7 @@ BulkDataReader::~BulkDataReader()
 {
 
 }
-int BulkDataReader::ReadNastranFile(std::string filename)
+int BulkDataReader::ReadNastranFile(std::string filename, OutfileWriter* writer)
 {
 	std::ifstream inFile;
 	std::string line;
@@ -25,7 +28,7 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 
     bool isfree = false;
 
-	const char* gcard = "GRID";
+	
 	const char* ccard = "CBAR";
 	const char* BDcard = "BEGIN BULK";
 
@@ -38,10 +41,13 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 
 	while (!inFile.eof()) {
 		inFile.getline(cline, max);
+        std::cout << cline << "\n";
+        writer->WriteLine(cline);
        
         if (strncmp(cline, BDcard, 4) == 0) {
             std::cout << "------------------- Bulk data found -----------------------------";
             inFile.getline(cline, max);
+            writer->WriteLine(cline);
             //std::cout << cline << "\n";
             pch = strchr(cline, ',');
             if (pch == NULL) {
@@ -61,7 +67,7 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 
 	}
     if (isfree)
-        ReadFreeFormat(cline, inFile);
+        ReadFreeFormat(cline, inFile, writer);
 		
 	std::cout << " eof reached \n";
 
@@ -69,7 +75,7 @@ int BulkDataReader::ReadNastranFile(std::string filename)
 	return error;
 }
 /******************************************************************************/
-int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile)
+int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWriter* writer)
 {
     int error = 0;
     int ierr = 0;
@@ -88,7 +94,7 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile)
     std::cout << " In read free format" << "\n";
     
     while (!done) {
-        std::cout << cline << "\n";
+        
         icol = 1;
         if (*cline == '$') {
             if (inFile.eof())
@@ -119,9 +125,9 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile)
             icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
             if (icond > 1)
                 std::cout << " ignoring Cd ix = " << ix << "\n";
-            icond = lnscan(cline, &icol, alpha, &ix, &x, &del); // ix is the spc value
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del); // ix, alpha is the spc value
 
-            ierr = TS.AddGridPoint(id, x1, x2, x3, ix);
+            ierr = TS.AddGridPoint(id, x1, x2, x3, alpha);
             if (ierr > 0)
                 EM.inp_DupError(cline);
                // std::cout << "===>>> ERROR duplicate grid point number: " << id << " <<<===\n";
@@ -209,12 +215,21 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile)
             x3 = x; //NU
             icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
             x4 = x; //RHO
-            if (ierr > 0)
-                EM.inp_DupError(cline);
 
             ierr = TS.AddMaterial(id, x1, x2, x3, x4);
             if (ierr > 0)
                 EM.inp_DupError(cline);
+        }
+        else if (strcmp(alpha, "SPC") == 0) {
+            isknown = true;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            id = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            int ig = ix;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            std::cout << " alpha " << alpha << "\n";
+            TS.AddConstraint(ig, alpha);
+            
         }
         if (!isknown)
             std::cout << "===> Unrecognized input: " << cline << "\n";
@@ -224,6 +239,8 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile)
             done = true;
         else {
             inFile.getline(cline, max);
+            std::cout << cline << "\n";
+            writer->WriteLine(cline);
             isknown = false;
         }
             
