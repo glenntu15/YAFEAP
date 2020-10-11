@@ -63,7 +63,7 @@ int BulkDataReader::ReadNastranFile(std::string filename, OutfileWriter* writer)
                 
         }
 
-        std::cout << cline << "\n";
+//        std::cout << cline << "\n";
 
 	}
     if (isfree)
@@ -74,7 +74,8 @@ int BulkDataReader::ReadNastranFile(std::string filename, OutfileWriter* writer)
 
 	return error;
 }
-/******************************************************************************/
+//*************************************************************************************************
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWriter* writer)
 {
     int error = 0;
@@ -101,6 +102,8 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWr
                 done = true;
             else {
                 inFile.getline(cline, max);
+                std::cout << cline << "\n";
+                writer->WriteLine(cline);
                 isknown = false;
             }
             continue;
@@ -126,7 +129,6 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWr
             if (icond > 1)
                 std::cout << " ignoring Cd ix = " << ix << "\n";
             icond = lnscan(cline, &icol, alpha, &ix, &x, &del); // ix, alpha is the spc value
-
             ierr = TS.AddGridPoint(id, x1, x2, x3, alpha);
             if (ierr > 0)
                 EM.inp_DupError(cline);
@@ -167,7 +169,7 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWr
         }
 
         //PBAR,pid,mid,A,i1,i2,j,nsm, [k1,k2 (k is area factor for shear) -- not implemented]
-        if (strcmp(alpha, "PBAR") == 0) {
+        else if (strcmp(alpha, "PBAR") == 0) {
             isknown = true;
             idp = 0;
             x1 = x2 = x3 = J = addmass = 0.;
@@ -230,6 +232,28 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWr
             std::cout << " alpha " << alpha << "\n";
             TS.AddConstraint(ig, alpha);
             
+        }
+        else if (strcmp(alpha, "FORCE") == 0) {
+            isknown = true;
+            x1 = x2 = x3 = x4 = 0.0;
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            id = ix;    // loadsetID
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            idp = ix;    // coordinate system
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            iga = ix;    // Grid ID
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            if ((icond == 4) ||(icond == 3))
+                x4 = x;    // Scale Factor
+            else
+                EM.inp_FormatError(cline);
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x1 = x * x4;    // x direction
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x2 = x * x4;    // y direction
+            icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
+            x3 = x * x4;    // z direction
+
         }
         if (!isknown)
             std::cout << "===> Unrecognized input: " << cline << "\n";

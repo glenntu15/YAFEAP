@@ -30,8 +30,6 @@ struct Element
 	
 	int pid;			// must be positive for input, generated properties are negative		
 	int intpid;
-	int matid;
-	int intmatid;
 	int pinFlagsa;
 	int pinFlagsb;
 	int id;
@@ -55,6 +53,8 @@ struct Grid
 		constraints[3] = false;
 		constraints[4] = false;
 		constraints[5] = false;
+		addmass = 0.0;
+		x = y = z = 0.0;
 	}
 };
 struct MAT1
@@ -67,16 +67,22 @@ struct MAT1
 };
 struct PBAR
 {
-	double Area;
+	double area;
 	double I1, I2, I3;  // moments of intertia
-	double J;			// torsonial constant
-	double Nsm;			// nonstructural mass
-	double K1;			// area for shear
-	double K2;
+	double j;			// torsonial constant
+	double nsm;			// nonstructural mass
+	double k1;			// area for shear
+	double k2;
 	int id;
 	int mid;			// MAT1 ID
-	int intermid;
+	int intmid;
 
+};
+struct Force
+{
+	double fm[6];
+	int loadset;
+	int intgid; 
 };
 class TableStorage
 {
@@ -93,26 +99,30 @@ public:
 		return instance;
 	}
 
-	int NumGrid(){return GridTable.size(); }
+	int NumGrid(){return (int)GridTable.size(); }
 	int AddGridPoint(int id, double x, double y, double z, char* spc);
 	Grid getGrid(int i) { return GridTable[i]; }
 
-	int NumElement() { return ElementTable.size(); }
+	int NumElement() { return static_cast<int>(ElementTable.size()); }
 	int AddCbarElement(int id, int pid, int iga, int igb, double x, double y, double z, int PA, int PB);
 	
 	Element getElement(int i) { return ElementTable[i]; }
 
-	int NumProperties() { return PropertyTable.size(); }
+	int NumProperties() { return static_cast<int>(PropertyTable.size()); }
 	//PBAR, pid, mid, A, i1, i2, j, nsm,
 	int AddPbar(int id, int mid, double A, double i1, double i2, double j, double nsm);
 	int AddPbarLame(int id);
-
-	int AddMaterial(int id, double e, double g, double nu, double ro);
-	int NumMaterials() { return MaterialTable.size(); }
-	
 	PBAR getProperty(int i) { return PropertyTable[i]; }
 
+
+	int AddMaterial(int id, double e, double g, double nu, double ro);
+	int NumMaterials() { return static_cast<int>(MaterialTable.size()); }
+	MAT1 getMaterial(int i) { return MaterialTable[i];  }
+	
 	void AddConstraint(int ig, char* alpha);
+
+	int AddForce(int gid, int loadset, double fx, double fy, double fz);
+
 	int CleanUpData();
 	void FillElementTable();
 
@@ -127,6 +137,7 @@ private:
 	std::vector<Element> ElementTable;
 	std::vector<MAT1> MaterialTable;
 	std::vector<PBAR> PropertyTable;
+	std::vector<Force> ForceTable;
 	//std::vector<MAT1> PRodTable;
 };
 

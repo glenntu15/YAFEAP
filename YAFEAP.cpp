@@ -6,6 +6,7 @@
 #include "BulkDataReader.h"
 #include "TableStorage.h"
 #include "OutfileWriter.h"
+#include "Analysis.h"
 
 int main(int argc, char*argv[])
 {
@@ -33,11 +34,9 @@ int main(int argc, char*argv[])
     bdr->ReadNastranFile(filename, writer);
     delete bdr;
 
+   
     TableStorage& ts = TableStorage::getInstance();
-    ts.FillElementTable();
 
-    writer->WriteInputSummary();
-    
     int len = ts.NumGrid();
     int lene = ts.NumElement();
     std::cout << " Number of grids read: " << len << " Number of elements: " << lene << "\n";
@@ -46,10 +45,27 @@ int main(int argc, char*argv[])
     std::cout << " Number of properties read: " << len << " Number of materials: " << lene << "\n";
 
     int error = ts.CleanUpData();
+
+    writer->WriteInputSummary();
+
     if (error > 0) {
         std::cout << "Error in data -- no analysis performed\n";
-        exit;
+        exit(0);
     }
+
+    std::cout << "filling element table" << std::endl;
+    ts.FillElementTable();
+
+    std::cout << "done" << std::endl;
+
+    Analysis* anl = new Analysis();
+   // std::cout << "analysis code" << std::endl;
+   anl->SolveStatic(writer);
+   // std::cout << "done" << std::endl;
+
+    writer->CloseIt();
+
+    exit(0);
     
 }
 

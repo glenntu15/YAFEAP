@@ -11,9 +11,11 @@ private:
 	char line[256];
 public:
 	OutfileWriter();
+	~OutfileWriter();
 	void WriteHeader(char *);
 	void WriteInputSummary();
 	void WriteLine(char* line);
-	void close() { outFile.close(); }
+	void CloseIt();
+	void WriteSquareMatrix(double *vals, int dim);
 };
 

@@ -15,7 +15,7 @@ TableStorage::~TableStorage()
 int TableStorage::AddGridPoint(int id, double x, double y, double z, char* spc)
 {
 	int error = 0;
-	int len = GridTable.size();
+	int len = static_cast<int>(GridTable.size());
 	for (int i = 0; i < len; i++) {
 		if (GridTable[i].id == id)
 			return 1;
@@ -54,7 +54,7 @@ int TableStorage::AddCbarElement(int id, int pid, int iga, int igb, double x, do
 }
 int TableStorage::CheckForDupEID(int id)
 {
-	int len = ElementTable.size();
+	int len = static_cast<int>(ElementTable.size());
 	for (int i = 0; i < len; i++) {
 		if (ElementTable[i].id == id)
 			return 1;
@@ -64,7 +64,7 @@ int TableStorage::CheckForDupEID(int id)
 int TableStorage::AddPbar(int id, int mid, double A, double i1, double i2, double j, double nsm)
 {
 	int error = 0;
-	int len = PropertyTable.size();
+	int len = static_cast<int>(PropertyTable.size());
 	for (int i = 0; i < len; i++) {
 		if (PropertyTable[i].id == id)
 			return 1;
@@ -72,11 +72,11 @@ int TableStorage::AddPbar(int id, int mid, double A, double i1, double i2, doubl
 	PBAR* p = new PBAR();
 	p->id = id;
 	p->mid = mid;
-	p->Area = A;
+	p->area = A;
 	p->I1 = i1;
 	p->I2 = i2;
-	p->J = j;
-	p->Nsm = nsm;
+	p->j = j;
+	p->nsm = nsm;
 	
 	PropertyTable.push_back(*p);
 
@@ -85,7 +85,7 @@ int TableStorage::AddPbar(int id, int mid, double A, double i1, double i2, doubl
 int TableStorage::AddPbarLame(int id)
 {
 	int error = 0;
-	int len = PropertyTable.size();
+	int len = static_cast<int>(PropertyTable.size());
 	for (int i = 0; i < len; i++) {
 		if (PropertyTable[i].id == id)
 			return 1;
@@ -95,7 +95,7 @@ int TableStorage::AddPbarLame(int id)
 int TableStorage::AddMaterial(int id, double e, double g, double nu, double ro)
 {
 	int error = 0;
-	int len = MaterialTable.size();
+	int len = static_cast<int>(MaterialTable.size());
 	for (int i = 0; i < len; i++) {
 		if (MaterialTable[i].id == id)
 			return 1;
@@ -112,15 +112,37 @@ int TableStorage::AddMaterial(int id, double e, double g, double nu, double ro)
 
 	return error;
 }
+int TableStorage::AddForce(int intgid, int loadset, double fx, double fy, double fz)
+{
+	int error = 0;
+	int len = static_cast<int>(ForceTable.size());
+	for (int i = 0; i < len; i++) {
+		if (ForceTable[i].intgid == intgid) {
+			error = -1;
+			return error;
+		}
+	}
+	Force fn;
+	fn.intgid = intgid;
+	fn.loadset = loadset;
+	fn.fm[0] = fx;
+	fn.fm[1] = fy;
+	fn.fm[2] = fz;
+	ForceTable.push_back(fn);
+
+	return 0;
+}
+
 int TableStorage::CleanUpData()
 {
 	int error = 0;
 	int id1, indx;
 	const char* gcard = "GRID";
 	const char* pcard = "Property";
+	const char* mcard = "Material";
 //
 //	First convert grid number in elements to internal grid numbers
-	int len = ElementTable.size();
+	int len = static_cast<int>(ElementTable.size());
 
 	for (int i = 0; i < len; i++) {
 		id1 = ElementTable[i].grida;
@@ -137,10 +159,11 @@ int TableStorage::CleanUpData()
 		id1 = ElementTable[i].pid;
 		indx = -1;
 		// Now make sure it references 
-		int len = PropertyTable.size();
-		for (int i = 0; i < len; i++) {
-			if (PropertyTable[i].id == id1) {
-				indx = i;
+		int plen = static_cast<int>(PropertyTable.size());
+		for (int ii = 0; ii < plen; ii++) {
+			if (PropertyTable[ii].id == id1) {
+				indx = ii;
+				ElementTable[i].intpid = ii;
 				break;
 			}
 		}
@@ -149,7 +172,24 @@ int TableStorage::CleanUpData()
 			EM.ItemNotFound(pcard, id1);
 		}
 	}
+	indx = -1;
+	len = NumProperties();
+	for (int i = 0; i < len; i++) {
+		id1 = PropertyTable[i].mid;
+		int mlen = NumMaterials();
+		for (int m = 0; m < mlen; m++) {
+			if (MaterialTable[m].id == id1) {
+				PropertyTable[i].intmid = i;
+				indx = i;
+				break;
+			}
+		}
+		if (indx < 0) {
+			error = 1;
+			EM.ItemNotFound(mcard, id1);
+		}
 
+	}
 //  Check that properties and materials have been entered
 
 	return error;
@@ -157,14 +197,15 @@ int TableStorage::CleanUpData()
 void TableStorage::AddConstraint(int id, char* spc)
 {
 	int intid = FindGridIndex(id);
+	int i0 = int('0');
 	if (intid < 0)
 		EM.ItemNotFound("GRID", id);
-	int len = strlen(spc);
+    int len = static_cast<int>(strlen(spc));
 	for (int i = 0; i < len; i++) {
 		char c = *spc + i;
 		if (c != ' ') {
-			int n = (int)c;
-			GridTable[intid].constraints[n - 1] = true;
+			int n = (int)c - i0 - 1;
+			GridTable[intid].constraints[n] = true;
 		}
 
 	}
@@ -172,7 +213,7 @@ void TableStorage::AddConstraint(int id, char* spc)
 }
 int inline TableStorage::FindGridIndex(int id)
 {
-	int len = GridTable.size();
+	int len = static_cast<int>(GridTable.size());
 	for (int i = 0; i < len; i++) {
 		if (GridTable[i].id == id)
 			return i;
