@@ -12,12 +12,13 @@
 
 Matrix::Matrix(int rows, int columns)
 {
-	MFormat = Dense;
-	size_t msize = static_cast<size_t>(rows * columns);
+	MFormat = MatrixFormat::Dense;
+	m = static_cast<size_t>(rows);
+	n = static_cast<size_t>(columns);
+	size_t msize = m * n;
 	data = new double[msize];
-	m = rows;
-	n = columns;
-	nrows = m;
+	
+	nrows = rows;
 	ncols = columns;
 	size_t dsize = sizeof(double);
 	size_t isize = msize * dsize;
@@ -173,12 +174,37 @@ int Matrix::AddVal(int iloc, int jloc, double val)
 	return 0;
 }
 //------------------------------------------------------------------------------------------------
+int Matrix::ClearRow(int rownum)
+{
+	//zero based row num
+	if (rownum >= nrows)
+		return 1;
+	int jstart = rownum * ncols;
+	for (int j = 0; j < ncols; j++) {
+		data[jstart + j] = 0.0;
+	}
+}
+//------------------------------------------------------------------------------------------------
+int Matrix::ClearCol(int colnum)
+{
+	//zero based row num
+	if (colnum >= ncols)
+		return 1;
+	int indx = colnum;
+	for (int i = 0; i < nrows; i++) {
+		data[indx] = 0.0;
+		indx += ncols;
+	}
+}
+//------------------------------------------------------------------------------------------------
 void Matrix::Clear()
 {
 	memset(data, 0, WORDSIZE * m * n);
 	return;
 }
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//  This section for sparce matricies
+//------------------------------------------------------------------------------------------------
 int Matrix::FreeDenseSpace()
 {
 	int error = 0;

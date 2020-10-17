@@ -40,29 +40,32 @@ void OutfileWriter::WriteLine(char* line)
 
 }
 //------------------------------------------------------------------------------------------------
-void OutfileWriter::WriteSquareMatrix(double *vals, int dim)
+void OutfileWriter::WriteMatrix(const char *headerline, double *vals, int nrows, int ncols)
 {
 	const int buflen = 128;
 	char buffer[buflen];
-	if (dim > 10)
-		dim = 10;
+	int pcols = ncols;
+	if (pcols > 10)
+		pcols = 10;
 	int l = 0;
 	int len = 0;
+
+	len = sprintf(buffer, "\n%s\n\n", headerline);
+	outFile.write(buffer, len);
+
 	//std::cout << "Line legth is " << l << "\n";
-	for (int i = 0; i < dim; i++) {
+	for (int i = 0; i < nrows; i++) {
 		buffer[0] = ' ';
 		l = 1;
-		for (int j = 0; j < dim; j++) {
-			len = sprintf(buffer+l, "%8.2f ", vals[i * dim + j]);
+		for (int j = 0; j < pcols; j++) {
+			len = sprintf(buffer+l, "%8.2f ", vals[i * ncols + j]);
 			l = l + len;
 		}
-		len = sprintf(buffer + l, " end of line");
-		l = l + len;
-		l++;
+		
 		if (l < buflen)
 			buffer[l] = '\n';
 		l++;
-		std::cout << " buffer: " << buffer << " l " << l << std::endl;
+		///std::cout << " buffer: " << buffer << " l " << l << std::endl;
 		outFile.write(buffer, l);
 	}
 
@@ -124,5 +127,37 @@ void OutfileWriter::WriteInputSummary()
 			e1.id, e1.grida, e1.gridb, p1.area, e1.length, m1.e);
 		outFile.write(buffer, len);
 	}
+	len = sprintf(buffer, "\n      F O R C E   R E P O R T\n");
+	outFile.write(buffer, len);
+	len = sprintf(buffer, "        GID        IntGid         Fx           Fy           Fz\n");
+	outFile.write(buffer, len);
+	int nf = ts.NumForces();
+	Force f1;
+	for (int i = 0; i < nf; i++) {
+		f1 = ts.getForce(i);
+		len = sprintf(buffer, "         %d           %d         %8.2f      %8.2f     %8.2f\n", f1.gid, f1.intgid, f1.fm[0], f1.fm[1], f1.fm[2]);
+		outFile.write(buffer, len);
+	}
+}
+void OutfileWriter::WriteDisplacementReport(double* vals, int nrows)
+{
+	TableStorage& ts = TableStorage::getInstance();
 
+	const int buflen = 128;
+	char buffer[buflen];
+	int len, l2;
+	len = sprintf(buffer, "\n      G R I D   D I S P L A C E M E N S\n");
+	outFile.write(buffer, len);
+	len = sprintf(buffer, "        GID        IntGid          dx          dy          dz\n");
+	outFile.write(buffer, len);
+
+	Grid g1;
+	int ng = ts.NumGrid();
+	for (int i = 0; i < ng; i++) {
+		g1 = ts.getGrid(i);
+		len = sprintf(buffer, "         %d           %d         %9.3g", i, g1.id, *(vals + i));
+		l2 = sprintf((buffer + len),"*\n");
+		len = len + l2;
+		outFile.write(buffer, len);
+	}
 }

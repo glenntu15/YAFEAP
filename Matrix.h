@@ -3,7 +3,7 @@
 #include <string>
 #define WORDSIZE 8
 
-enum MatrixFormat {
+enum class MatrixFormat {
 	Unknown,
 	Dense,
 	SparseAsDense,
@@ -26,6 +26,7 @@ public:
 	//Matrix(int rows, int columns, MatrixFormat format);
 	double* getDataPtr() { return data; }
 	int getNrows() { return nrows; }
+	int getNcols() { return ncols; }
 
 	void FillRandom(MatrixFormat format);
 	void FillConstant(double c);
@@ -34,6 +35,8 @@ public:
 	int AddVal(int iloc, int jloc, double val);
 
 	void Clear();
+	int ClearRow(int rownum);
+	int ClearCol(int rownum);
 	int FreeDenseSpace();
 	int ConvertDensetoCOO();
 	void ConvertCooToCrs();
@@ -45,10 +48,11 @@ public:
 	double* vals;
 private:
 	MatrixFormat MFormat;
-	int m;		// rows -- row major
+	size_t m;		// rows -- row major
+	size_t n;		// columns
 	int nrows;
 	int ncols;
-	int n;		// columns
+	
 	int numnz;	// number of non zeros
 
 	int ReadMatrix(std::string filename, int* n, double*& mp,

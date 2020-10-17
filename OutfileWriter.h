@@ -16,6 +16,7 @@ public:
 	void WriteInputSummary();
 	void WriteLine(char* line);
 	void CloseIt();
-	void WriteSquareMatrix(double *vals, int dim);
+	void WriteMatrix(const char *headerline, double *vals, int nrows, int ncols);
+	void WriteDisplacementReport(double* vals, int nrows);
 };
 

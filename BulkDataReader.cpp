@@ -253,6 +253,7 @@ int BulkDataReader::ReadFreeFormat(char* cline, std::ifstream &inFile, OutfileWr
             x2 = x * x4;    // y direction
             icond = lnscan(cline, &icol, alpha, &ix, &x, &del);
             x3 = x * x4;    // z direction
+            TS.AddForce(iga, id, x1, x2, x3);
 
         }
         if (!isknown)

@@ -112,18 +112,19 @@ int TableStorage::AddMaterial(int id, double e, double g, double nu, double ro)
 
 	return error;
 }
-int TableStorage::AddForce(int intgid, int loadset, double fx, double fy, double fz)
+// called with external gid, internal gid added later
+int TableStorage::AddForce(int gid, int loadset, double fx, double fy, double fz)
 {
 	int error = 0;
 	int len = static_cast<int>(ForceTable.size());
 	for (int i = 0; i < len; i++) {
-		if (ForceTable[i].intgid == intgid) {
+		if (ForceTable[i].gid == gid) { // duplicate grid
 			error = -1;
 			return error;
 		}
 	}
 	Force fn;
-	fn.intgid = intgid;
+	fn.gid = gid;
 	fn.loadset = loadset;
 	fn.fm[0] = fx;
 	fn.fm[1] = fy;
@@ -190,6 +191,12 @@ int TableStorage::CleanUpData()
 		}
 
 	}
+
+	len = NumForces();
+	for (int i = 0; i < len; i++) {
+		ForceTable[i].intgid = FindGridIndex(ForceTable[i].gid);
+	}
+
 //  Check that properties and materials have been entered
 
 	return error;

@@ -83,6 +83,7 @@ struct Force
 	double fm[6];
 	int loadset;
 	int intgid; 
+	int gid;
 };
 class TableStorage
 {
@@ -122,6 +123,8 @@ public:
 	void AddConstraint(int ig, char* alpha);
 
 	int AddForce(int gid, int loadset, double fx, double fy, double fz);
+	int NumForces() { return static_cast<int>(ForceTable.size()); }
+	Force getForce(int i) { return ForceTable[i]; }
 
 	int CleanUpData();
 	void FillElementTable();

@@ -34,6 +34,7 @@ Solvers::Solvers()
 {
     pMatutils = new MatUtils();
 	outputError = 0;
+	MaxIteration = 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
